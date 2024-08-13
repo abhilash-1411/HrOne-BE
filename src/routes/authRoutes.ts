@@ -16,6 +16,10 @@ import {
   getAllFeeds,
   addReferral,
   getAllReferrals,
+  addCoreValue,
+  getAllCoreValues,
+  upsertCompanyInfo,
+  getCompanyInfo,
   checkBirthdays,
   checkAnniversary
 } from '../controllers/authController';
@@ -39,6 +43,10 @@ router.get('/new_employees', getAllNewEmployees);
 router.get('/new_employee/:id', getNewEmployeeById); 
 router.post('/referral', addReferral);
 router.get('/referrals', getAllReferrals);
+router.post('/core-values', addCoreValue);
+router.get('/core-values', getAllCoreValues);
+router.post('/company-info', upsertCompanyInfo);
+router.get('/company-info/:type', getCompanyInfo);
 router.get('/check-birthdays', checkBirthdays);
 router.get('/year-celebration', checkAnniversary);
 

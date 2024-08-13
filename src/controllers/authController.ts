@@ -416,3 +416,98 @@ export const checkAnniversary = async (req: Request, res: Response) => {
   }
 };
 
+// Add Core Value API
+export const addCoreValue = async (req: Request, res: Response) => {
+  const { title, description } = req.body;
+
+  try {
+    // Ensure all required fields are provided
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Title and description are required' });
+    }
+
+    // Insert the new core value into the core_values table
+    const result = await pool.query(
+      'INSERT INTO core_values (title, description) VALUES ($1, $2) RETURNING *',
+      [title, description]
+    );
+
+    res.status(201).json({ message: 'Core value added successfully', coreValue: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding core value:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+// Get All Core Values API
+export const getAllCoreValues = async (req: Request, res: Response) => {
+    try {
+      // Query the database to get all core values
+      const result = await pool.query('SELECT * FROM core_values ORDER BY created_at DESC');
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'No core values found' });
+      }
+  
+      // Respond with the list of core values
+      res.status(200).json(result.rows);
+    } catch (error) {
+      console.error('Error fetching core values:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+//Add mission-vision
+ // Add or Update Company Info
+export const upsertCompanyInfo = async (req: Request, res: Response) => {
+    const { type, content } = req.body;
+  
+    try {
+      // Ensure the required fields are provided
+      if (!type || !content) {
+        return res.status(400).json({ message: 'Type and content are required' });
+      }
+  
+      // Check if the entry already exists
+      const existingResult = await pool.query('SELECT * FROM company_info WHERE type = $1', [type]);
+  
+      // Handle the possibility of rowCount being null
+      if (existingResult.rowCount === null || existingResult.rowCount > 0) {
+        // Update the existing entry
+        const result = await pool.query(
+          'UPDATE company_info SET content = $1, updated_at = CURRENT_TIMESTAMP WHERE type = $2 RETURNING *',
+          [content, type]
+        );
+        return res.status(200).json({ message: 'Company info updated successfully', companyInfo: result.rows[0] });
+      } else {
+        // Insert a new entry
+        const result = await pool.query(
+          'INSERT INTO company_info (type, content) VALUES ($1, $2) RETURNING *',
+          [type, content]
+        );
+        return res.status(201).json({ message: 'Company info added successfully', companyInfo: result.rows[0] });
+      }
+    } catch (error) {
+      console.error('Error upserting company info:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  
+  // Get Company Info
+  export const getCompanyInfo = async (req: Request, res: Response) => {
+    const { type } = req.params;
+  
+    try {
+      // Query the database to get the company info by type
+      const result = await pool.query('SELECT * FROM company_info WHERE type = $1', [type]);
+  
+      // Handle the possibility of rowCount being null
+      if (result.rowCount === null || result.rowCount === 0) {
+        return res.status(404).json({ message: 'Company info not found' });
+      }
+  
+      // Return the retrieved company info
+      res.status(200).json(result.rows[0]);
+    } catch (error) {
+      console.error('Error fetching company info:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
