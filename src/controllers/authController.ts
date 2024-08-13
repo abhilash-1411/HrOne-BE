@@ -2,9 +2,6 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db/db';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
 
 
 
@@ -167,3 +164,58 @@ export const checkLeaveBalance = async (req: Request, res: Response) => {
       res.status(500).json({ message: 'Internal server error' });
     }
   };
+  // Add Post API
+export const addPost = async (req: Request, res: Response) => {
+  const { title, comments, photo_url, user_id } = req.body;
+
+  try {
+    // Ensure all required fields are provided
+    if (!title || !comments || !photo_url || !user_id) {
+      return res.status(400).json({ message: 'Title, comments, photo URL, and user ID are required' });
+    }
+
+    // Insert the new post into the feed table
+    const result = await pool.query(
+      'INSERT INTO feed (title, comments, photo_url, user_id, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+      [title, comments, photo_url, user_id]
+    );
+
+    res.status(201).json({ message: 'Post added successfully', post: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding post:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+// Get All Feeds API
+export const getAllFeeds = async (req: Request, res: Response) => {
+  try {
+    // Query the database to get all posts from the feed table
+    const result = await pool.query('SELECT * FROM feed ORDER BY created_at DESC');
+    
+    // Return the retrieved posts as a response
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching feeds:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+// Get Feed By User ID API
+export const getFeedByUserId = async (req: Request, res: Response) => {
+  const { user_id } = req.params;
+
+  try {
+    // Query the database to get all posts by the specified user_id
+    const result = await pool.query('SELECT * FROM feed WHERE user_id = $1', [user_id]);
+
+    // Check if posts were found for the given user_id
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No feeds found for this user' });
+    }
+
+    // Return the retrieved posts as a response
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
