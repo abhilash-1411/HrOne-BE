@@ -2,8 +2,46 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db/db';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
+
+
+export const checkStatus = (req: Request, res: Response) => {
+    res.status(200).json({ status: 'OK', message: 'API is working properly' });
+  };
+//getAllUsers
+export const getAllUsers = async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query('SELECT id, email FROM users');
+      res.status(200).json(result.rows);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+
+//   getUserbyId
+  export const getUserById = async (req: Request, res: Response) => {
+    const { id } = req.params;
+  
+    try {
+      const result = await pool.query('SELECT id, email FROM users WHERE id = $1', [id]);
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      res.status(200).json(result.rows[0]);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  
 // Register API
+
 export const register = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
@@ -67,3 +105,65 @@ export const forgotPassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+//punch in punch out
+export const checkAttendance = async (req: Request, res: Response) => {
+    const { user_id, punch_in_time, punch_out_time } = req.body;
+   
+    try {
+      // Ensure the required parameters are provided
+      if (!user_id || !punch_in_time || !punch_out_time) {
+        return res.status(400).json({ message: 'User ID, punch-in time, and punch-out time are required' });
+      }
+   
+      // Calculate the difference in hours between punch-in and punch-out times
+      const punchIn = new Date(punch_in_time);
+      const punchOut = new Date(punch_out_time);
+      const differenceInHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+   
+      // Check if the difference is greater than 9.5 hours
+      const flag = differenceInHours > 9.5;
+   
+      res.status(200).json({ flag });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+   
+//check leave balance
+export const checkLeaveBalance = async (req: Request, res: Response) => {
+    const { user_id, leave_days } = req.body;
+   
+    try {
+      // Ensure the required parameters are provided
+      if (user_id === undefined || leave_days === undefined) {
+        return res.status(400).json({ message: 'User ID and leave days are required' });
+      }
+   
+      // Fetch the user's leave balance from the database
+      const result = await pool.query('SELECT leave_balance FROM users WHERE id = $1', [user_id]);
+   
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+   
+      const { leave_balance } = result.rows[0];
+   
+      // Check if the leave balance is sufficient
+      if (leave_balance >= leave_days) {
+        // Calculate new leave balance
+        const newLeaveBalance = leave_balance - leave_days;
+   
+        // Optionally update the leave balance in the database
+        await pool.query('UPDATE users SET leave_balance = $1 WHERE id = $2', [newLeaveBalance, user_id]);
+   
+        return res.status(200).json({ message: 'Leave granted', new_leave_balance: newLeaveBalance });
+      } else {
+        return res.status(400).json({ message: 'Insufficient leave balance' });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };

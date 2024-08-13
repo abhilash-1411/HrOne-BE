@@ -8,7 +8,9 @@ const port = 3000;
 app.use(express.json());
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/', authRoutes);
+
+
 
 // Start the server
 app.listen(port, () => {
