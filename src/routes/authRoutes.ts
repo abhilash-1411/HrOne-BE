@@ -15,7 +15,9 @@ import {
   addPost,
   getAllFeeds,
   addReferral,
-  getAllReferrals
+  getAllReferrals,
+  checkBirthdays,
+  checkAnniversary
 } from '../controllers/authController';
 
 const router = Router();
@@ -37,6 +39,8 @@ router.get('/new_employees', getAllNewEmployees);
 router.get('/new_employee/:id', getNewEmployeeById); 
 router.post('/referral', addReferral);
 router.get('/referrals', getAllReferrals);
+router.get('/check-birthdays', checkBirthdays);
+router.get('/year-celebration', checkAnniversary);
 
 
 export default router;

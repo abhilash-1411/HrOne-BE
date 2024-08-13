@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db/db';
-
+import moment from 'moment';
 //Status Check
 export const checkStatus = (req: Request, res: Response) => {
     res.status(200).json({ status: 'OK', message: 'API is working properly' });
@@ -348,5 +348,71 @@ export const getAllReferrals = async (req: Request, res: Response) => {
         console.error('Error fetching referrals:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
+};
+
+// Check if today is a user's birthday
+export const checkBirthdays = async (req: Request, res: Response) => {
+  try {
+    // Get today's date in YYYY-MM-DD format
+    const today = moment().format('MM-DD');
+
+    // Query to find employees with today's birthday
+    const result = await pool.query(`
+      SELECT e.user_id, u.name, e.dob
+      FROM new_employee e
+      JOIN users u ON e.user_id = u.id
+      WHERE TO_CHAR(e.dob, 'MM-DD') = $1
+    `, [today]);
+
+    if (result.rowCount === 0) {
+      return res.status(200).json({ message: 'No birthdays today' });
+    }
+
+    const birthdayMessages = result.rows.map(row => `Today is ${row.name}'s birthday`);
+
+    res.status(200).json({ messages: birthdayMessages });
+  } catch (error) {
+    console.error('Error checking birthdays:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+// Year Celebration API
+export const checkAnniversary = async (req: Request, res: Response) => {
+  try {
+    // Get today's date in 'MM-DD' format
+    const today = moment().format('MM-DD');
+    
+    // Query to get employees' joining dates
+    const result = await pool.query('SELECT * FROM new_employee');
+    const employees = result.rows;
+    
+    const anniversaryMessages = employees
+      .map(employee => {
+        // Calculate the anniversary date in 'MM-DD' format
+        const joiningDate = moment(employee.joining_date);
+        const anniversaryDate = joiningDate.format('MM-DD');
+        
+        // Calculate years of service
+        const years = moment().diff(joiningDate, 'years');
+        
+        // Only include messages for employees with more than 0 years of service
+        if (anniversaryDate === today && years > 0) {
+          return `Congratulations ${employee.emp_code}, you have ${years} year(s) of service today!`;
+        }
+        return null;
+      })
+      .filter(message => message !== null);
+    
+    if (anniversaryMessages.length > 0) {
+      res.status(200).json({ message: anniversaryMessages.join(', ') });
+    } else {
+      res.status(200).json({ message: 'No anniversaries today' });
+    }
+  } catch (error) {
+    console.error('Error checking anniversaries:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
