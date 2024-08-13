@@ -219,7 +219,7 @@ export const getFeedByUserId = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-<<<<<<< Updated upstream
+
 // Add Employee API
 export const addEmployee = async (req: Request, res: Response) => {
   const {
@@ -312,7 +312,6 @@ export const getNewEmployeeById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-=======
 
 // Add Referral API
 export const addReferral = async (req: Request, res: Response) => {
@@ -350,4 +349,4 @@ export const getAllReferrals = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
->>>>>>> Stashed changes
+
