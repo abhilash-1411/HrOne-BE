@@ -3,11 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db/db';
 
-
-
+//Status Check
 export const checkStatus = (req: Request, res: Response) => {
     res.status(200).json({ status: 'OK', message: 'API is working properly' });
   };
+
 //getAllUsers
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -18,7 +18,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 //   getUserbyId
 export const getUserById = async (req: Request, res: Response) => {
@@ -38,7 +37,6 @@ export const getUserById = async (req: Request, res: Response) => {
   }
 };
 
-  
 // Register API
 
 export const register = async (req: Request, res: Response) => {
@@ -59,7 +57,6 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 // Login API
 export const login = async (req: Request, res: Response) => {
@@ -167,7 +164,7 @@ export const checkLeaveBalance = async (req: Request, res: Response) => {
       res.status(500).json({ message: 'Internal server error' });
     }
   };
-  // Add Post API
+   // Add Post API
 export const addPost = async (req: Request, res: Response) => {
   const { title, comments, photo_url, user_id } = req.body;
 
@@ -222,6 +219,7 @@ export const getFeedByUserId = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+<<<<<<< Updated upstream
 // Add Employee API
 export const addEmployee = async (req: Request, res: Response) => {
   const {
@@ -314,3 +312,42 @@ export const getNewEmployeeById = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+=======
+
+// Add Referral API
+export const addReferral = async (req: Request, res: Response) => {
+    const { candidate_name, gender, email, country_code, phone_number, comments, portfolio_url, referred_by_user_id } = req.body;
+
+    try {
+        // Ensure all required fields are provided
+        if (!candidate_name || !gender || !email || !country_code || !phone_number || !referred_by_user_id) {
+            return res.status(400).json({ message: 'Candidate name, gender, email, country code, phone number, and referred by user ID are required' });
+        }
+
+        // Insert the new referral into the referrals table
+        const result = await pool.query(
+            'INSERT INTO referrals (candidate_name, gender, email, country_code, phone_number, comments, portfolio_url, referred_by_user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [candidate_name, gender, email, country_code, phone_number, comments, portfolio_url, referred_by_user_id]
+        );
+
+        res.status(201).json({ message: 'Referral added successfully', referral: result.rows[0] });
+    } catch (error) {
+        console.error('Error adding referral:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+// Get All Referrals API
+export const getAllReferrals = async (req: Request, res: Response) => {
+    try {
+        // Query the database to get all referrals
+        const result = await pool.query('SELECT * FROM referrals ORDER BY created_at DESC');
+        
+        // Return the retrieved referrals as a response
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching referrals:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+>>>>>>> Stashed changes
