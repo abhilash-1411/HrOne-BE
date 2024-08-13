@@ -8,7 +8,12 @@ import {
   getAllUsers,
   getUserById,
   checkLeaveBalance,
-  getFeedByUserId // Import the new controller
+  getFeedByUserId,
+  addEmployee,
+  getAllNewEmployees ,
+  getNewEmployeeById,
+  addPost,
+  getAllFeeds
 } from '../controllers/authController';
 
 const router = Router();
@@ -21,6 +26,12 @@ router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/check-attendance', checkAttendance);
 router.post('/check-leave-balance', checkLeaveBalance);
-router.get('/feeds/user/:user_id', getFeedByUserId); // Add the new route
+router.post('/add_post', addPost);
+router.get('/getAll_feed',getAllFeeds)
+router.get('/feeds/user/:user_id', getFeedByUserId);
+router.post('/add_new_employee', addEmployee);
+router.get('/new_employees', getAllNewEmployees); 
+router.get('/new_employee/:id', getNewEmployeeById); 
+
 
 export default router;

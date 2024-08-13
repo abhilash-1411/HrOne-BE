@@ -222,3 +222,95 @@ export const getFeedByUserId = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+// Add Employee API
+export const addEmployee = async (req: Request, res: Response) => {
+  const {
+    user_id, // should correspond to the `id` from `users` table
+    emp_code,
+    dob,
+    gender,
+    blood_group,
+    nationality,
+    date_of_joining,
+    company,
+    reporting_manager,
+    functional_manager,
+    date_of_completion
+  } = req.body;
+
+  try {
+    // Ensure all required fields are provided
+    if (
+      !user_id || // ensure user_id is provided
+      !emp_code ||
+      !dob ||
+      !gender ||
+      !blood_group ||
+      !nationality ||
+      !date_of_joining ||
+      !company ||
+      !reporting_manager ||
+      !functional_manager ||
+      !date_of_completion
+    ) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Check if the user_id exists in the users table
+    const userCheckResult = await pool.query('SELECT * FROM users WHERE id = $1', [user_id]);
+    if (userCheckResult.rowCount === 0) {
+      return res.status(400).json({ message: 'User does not exist' });
+    }
+
+    // Insert the new employee details into the new_employee table
+    const result = await pool.query(
+      `INSERT INTO new_employee (user_id, emp_code, dob, gender, blood_group, nationality, date_of_joining, company, reporting_manager, functional_manager, date_of_completion) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [user_id, emp_code, dob, gender, blood_group, nationality, date_of_joining, company, reporting_manager, functional_manager, date_of_completion]
+    );
+
+    res.status(201).json({ message: 'Employee details added successfully', employee: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding employee details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+export const getAllNewEmployees = async (req: Request, res: Response) => {
+  try {
+    // Query to fetch all new employees
+    const result = await pool.query('SELECT * FROM new_employee');
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No new employees found' });
+    }
+
+    // Respond with the list of new employees
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching new employees:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+// Get New Employee By ID API
+export const getNewEmployeeById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    // Query the database to get the employee details by their ID
+    const result = await pool.query(
+      'SELECT * FROM new_employee WHERE user_id = $1',
+      [id]
+    );
+
+    // Check if the employee was found
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    // Return the retrieved employee details as a response
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching employee details:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
