@@ -10,37 +10,39 @@ export const checkStatus = (req: Request, res: Response) => {
   };
 //getAllUsers
 export const getAllUsers = async (req: Request, res: Response) => {
-    try {
-      const result = await pool.query('SELECT id, email FROM users');
-      res.status(200).json(result.rows);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  };
+  try {
+    const result = await pool.query('SELECT id, name, email FROM users');
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 
 //   getUserbyId
-  export const getUserById = async (req: Request, res: Response) => {
-    const { id } = req.params;
-  
-    try {
-      const result = await pool.query('SELECT id, email FROM users WHERE id = $1', [id]);
-      
-      if (result.rowCount === 0) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      res.status(200).json(result.rows[0]);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal server error' });
+export const getUserById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'User not found' });
     }
-  };
+
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
   
 // Register API
 
 export const register = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -49,7 +51,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO users (email, password) VALUES ($1, $2)', [email, hashedPassword]);
+    await pool.query('INSERT INTO users (name, email, password) VALUES ($1, $2, $3)', [name, email, hashedPassword]);
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
@@ -57,6 +59,7 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 // Login API
 export const login = async (req: Request, res: Response) => {
