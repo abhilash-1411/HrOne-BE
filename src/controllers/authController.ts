@@ -2,16 +2,36 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../db/db";
-import moment from "moment";
+import moment, { isDate } from "moment";
 //Status Check
 export const checkStatus = (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is working properly" });
 };
 
-//getAllUsers
+
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const result = await pool.query("SELECT id, name, email FROM users");
+    const { name, email } = req.query;
+
+    let baseQuery = "SELECT id, name, email FROM users";
+    let conditions = [];
+    let values = [];
+
+    if (name) {
+      conditions.push('name ILIKE $1');
+      values.push(`%${name}%`);
+    }
+
+    if (email) {
+      conditions.push('email ILIKE $2');
+      values.push(`%${email}%`);
+    }
+
+    if (conditions.length > 0) {
+      baseQuery += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    const result = await pool.query(baseQuery, values);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error(error);
@@ -19,7 +39,9 @@ export const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-// getUserbyId
+
+
+//   getUserbyId
 export const getUserById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -131,33 +153,63 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
 //Punch in punch out
 export const checkAttendance = async (req: Request, res: Response) => {
-  const { user_id, punch_in_time, punch_out_time } = req.body;
+    const { user_id, punch_in_time, punch_out_time } = req.body;
+   
+    try {
+      // Ensure the required parameters are provided
+      if (!user_id || !punch_in_time || !punch_out_time) {
+        return res.status(400).json({ message: 'User ID, punch-in time, and punch-out time are required' });
+      }
+   
+      // Calculate the difference in hours between punch-in and punch-out times
+      const punchIn = new Date(punch_in_time);
+      const punchOut = new Date(punch_out_time);
+      const differenceInHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+   
+      // Check if the difference is greater than 9.5 hours
+      const flag = differenceInHours > 9.5;
+   
+      res.status(200).json({ flag });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+
+  //punch in punch out for previous day
+  
+export const checkPreviousDayAttendance = async (req: Request, res: Response) => {
+  const { user_id } = req.body;
 
   try {
-    // Ensure the required parameters are provided
-    if (!user_id || !punch_in_time || !punch_out_time) {
-      return res
-        .status(400)
-        .json({
-          message: "User ID, punch-in time, and punch-out time are required",
-        });
+    if (!user_id) {
+      return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // Calculate the difference in hours between punch-in and punch-out times
-    const punchIn = new Date(punch_in_time);
-    const punchOut = new Date(punch_out_time);
-    const differenceInHours =
-      (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+    // Calculate the previous day's date
+    const previousDay = moment().subtract(1, 'days').format('YYYY-MM-DD');
 
-    // Check if the difference is greater than 9.5 hours
-    const flag = differenceInHours > 9.5;
+    // Query to get punch-in and punch-out times for the previous day
+    const result = await pool.query(
+      `SELECT punch_in_time, punch_out_time 
+       FROM calendar 
+       WHERE user_id = $1 
+         AND DATE(punch_in_time) = $2`,
+      [user_id, previousDay]
+    );
 
-    res.status(200).json({ flag });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No attendance record found for the previous day' });
+    }
+
+    // Return the punch-in and punch-out times
+    res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('Error fetching previous day attendance:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 //check leave balance
 export const checkLeaveBalance = async (req: Request, res: Response) => {
@@ -801,3 +853,67 @@ export const getLeaveBalance = async (
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+
+ 
+// Post a New Entry to Wall of Fame
+export const addWallOfFameEntry = async (req: Request, res: Response) => {
+  const {  badge_url, user_id,comment } = req.body;
+
+  try {
+    // Ensure all required fields are provided
+    if ( !badge_url || !comment || !user_id) {
+      return res.status(400).json({ message: ' badge_url, comment, and user ID are required' });
+    }
+
+    // Insert the new entry into the wall_of_fame table
+    const result = await pool.query(
+      'INSERT INTO wall_of_fame ( badge_url, comment, user_id,created_at, updated_at) VALUES ($1, $2, $3, NOW(),NoW()) RETURNING *',
+      [ badge_url, comment, user_id]
+    );
+
+    res.status(201).json({ message: 'Entry added successfully', entry: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding entry:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get All Wall of Fame Entries
+export const getAllWallOfFameEntries = async (req: Request, res: Response) => {
+  try {
+    // Query the database to get all entries from the wall_of_fame table
+    const result = await pool.query('SELECT * FROM wall_of_fame ORDER BY created_at DESC');
+    
+    // Return the retrieved entries as a response
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching entries:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get Wall of Fame Entry by User ID
+export const getWallOfFameEntryByUserId = async (req: Request, res: Response) => {
+  const { user_id } = req.params;
+
+  try {
+    // Query the database to get all entries by the specified user_id
+    const result = await pool.query('SELECT * FROM wall_of_fame WHERE user_id = $1', [user_id]);
+
+    // Check if entries were found for the given user_id
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'No entries found for this user' });
+    }
+
+    // Return the retrieved entries as a response
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching entries:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+

@@ -22,39 +22,71 @@ import {
   getCompanyInfo,
   checkBirthdays,
   checkAnniversary,
-  applyForLeave,
-  getLeaveRequests,
-  getPeopleOnLeaveToday,
-  getLeaveBalance,
-} from "../controllers/authController";
+addWallOfFameEntry,
+getAllWallOfFameEntries,
+getWallOfFameEntryByUserId,
+checkPreviousDayAttendance,
+applyForLeave,
+getLeaveBalance,
+getPeopleOnLeaveToday,
+getLeaveRequests
+} from '../controllers/authController';
 
 const router = Router();
 
-router.get("/users", getAllUsers);
-router.get("/users/:id", getUserById);
-router.get("/", checkStatus);
-router.post("/register", register);
-router.post("/login", login);
-router.post("/forgot-password", forgotPassword);
-router.post("/check-attendance", checkAttendance);
-router.post("/check-leave-balance", checkLeaveBalance);
-router.post("/add_post", addPost);
-router.get("/getAll_feed", getAllFeeds);
-router.get("/feeds/user/:user_id", getFeedByUserId);
-router.post("/add_new_employee", addEmployee);
-router.get("/new_employees", getAllNewEmployees);
-router.get("/new_employee/:id", getNewEmployeeById);
-router.post("/referral", addReferral);
-router.get("/referrals", getAllReferrals);
-router.post("/core-values", addCoreValue);
-router.get("/core-values", getAllCoreValues);
-router.post("/company-info", upsertCompanyInfo);
-router.get("/company-info/:type", getCompanyInfo);
-router.get("/check-birthdays", checkBirthdays);
-router.get("/year-celebration", checkAnniversary);
+
+//status check
+router.get('/', checkStatus);
+
+//user 
+router.post('/register', register);
+router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.get('/users', getAllUsers);
+router.get('/users/:id', getUserById);
+
+//Attendance calendar
+router.post('/check-attendance', checkAttendance);
+router.post('/check-leave-balance', checkLeaveBalance);
+router.post('/check-PreviousDayAttendance', checkPreviousDayAttendance);
+
+
+//feed of home page
+router.post('/add_post', addPost);
+router.get('/getAll_feed',getAllFeeds)
+router.get('/feeds/user/:user_id', getFeedByUserId);
+
+//new employee to company
+router.post('/add_new_employee', addEmployee);
+router.get('/new_employees', getAllNewEmployees); 
+router.get('/new_employee/:id', getNewEmployeeById); 
+
+//referral
+router.post('/referral', addReferral);
+router.get('/referrals', getAllReferrals);
+
+//corevalues
+router.post('/core-values', addCoreValue);
+router.get('/core-values', getAllCoreValues);
+
+//company
+router.post('/company-info', upsertCompanyInfo);
+router.get('/company-info/:type', getCompanyInfo);
+
+//event 
+router.get('/check-birthdays', checkBirthdays);
+router.get('/year-celebration', checkAnniversary);
+
+// Wall of Fame routes
+router.post('/wall-of-fame/post',  addWallOfFameEntry);
+router.get('/wall-of-fame', getAllWallOfFameEntries );
+router.get('/wall-of-fame/:user_id', getWallOfFameEntryByUserId);
+
+// leave check apis 
 router.post("/apply-leave", applyForLeave);
 router.get("/leave/requests", getLeaveRequests);
 router.get("/leave/today", getPeopleOnLeaveToday);
 router.get("/leave-balance", getLeaveBalance);
+
 
 export default router;
