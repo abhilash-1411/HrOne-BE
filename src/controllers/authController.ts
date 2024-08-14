@@ -19,7 +19,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
   }
 };
 
-//   getUserbyId
+// getUserbyId
 export const getUserById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -84,6 +84,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Forgot Password API
+
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -103,7 +104,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
-//punch in punch out
+//Punch in punch out
 export const checkAttendance = async (req: Request, res: Response) => {
     const { user_id, punch_in_time, punch_out_time } = req.body;
    
@@ -511,3 +512,5 @@ export const upsertCompanyInfo = async (req: Request, res: Response) => {
       res.status(500).json({ message: 'Internal server error' });
     }
   };
+
+  
