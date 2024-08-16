@@ -3,11 +3,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../db/db";
 import moment, { isDate } from "moment";
+
+
 //Status Check
 export const checkStatus = (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is working properly" });
 };
-
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -18,17 +19,17 @@ export const getAllUsers = async (req: Request, res: Response) => {
     let values = [];
 
     if (name) {
-      conditions.push('name ILIKE $1');
+      conditions.push("name ILIKE $1");
       values.push(`%${name}%`);
     }
 
     if (email) {
-      conditions.push('email ILIKE $2');
+      conditions.push("email ILIKE $2");
       values.push(`%${email}%`);
     }
 
     if (conditions.length > 0) {
-      baseQuery += ' WHERE ' + conditions.join(' AND ');
+      baseQuery += " WHERE " + conditions.join(" AND ");
     }
 
     const result = await pool.query(baseQuery, values);
@@ -38,8 +39,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
-
 
 //   getUserbyId
 export const getUserById = async (req: Request, res: Response) => {
@@ -153,41 +152,49 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
 //Punch in punch out
 export const checkAttendance = async (req: Request, res: Response) => {
-    const { user_id, punch_in_time, punch_out_time } = req.body;
-   
-    try {
-      // Ensure the required parameters are provided
-      if (!user_id || !punch_in_time || !punch_out_time) {
-        return res.status(400).json({ message: 'User ID, punch-in time, and punch-out time are required' });
-      }
-   
-      // Calculate the difference in hours between punch-in and punch-out times
-      const punchIn = new Date(punch_in_time);
-      const punchOut = new Date(punch_out_time);
-      const differenceInHours = (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
-   
-      // Check if the difference is greater than 9.5 hours
-      const flag = differenceInHours > 9.5;
-   
-      res.status(200).json({ flag });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  };
+  const { user_id, punch_in_time, punch_out_time } = req.body;
 
-  //punch in punch out for previous day
-  
-export const checkPreviousDayAttendance = async (req: Request, res: Response) => {
+  try {
+    // Ensure the required parameters are provided
+    if (!user_id || !punch_in_time || !punch_out_time) {
+      return res
+        .status(400)
+        .json({
+          message: "User ID, punch-in time, and punch-out time are required",
+        });
+    }
+
+    // Calculate the difference in hours between punch-in and punch-out times
+    const punchIn = new Date(punch_in_time);
+    const punchOut = new Date(punch_out_time);
+    const differenceInHours =
+      (punchOut.getTime() - punchIn.getTime()) / (1000 * 60 * 60);
+
+    // Check if the difference is greater than 9.5 hours
+    const flag = differenceInHours > 9.5;
+
+    res.status(200).json({ flag });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+//punch in punch out for previous day
+
+export const checkPreviousDayAttendance = async (
+  req: Request,
+  res: Response
+) => {
   const { user_id } = req.body;
 
   try {
     if (!user_id) {
-      return res.status(400).json({ message: 'User ID is required' });
+      return res.status(400).json({ message: "User ID is required" });
     }
 
     // Calculate the previous day's date
-    const previousDay = moment().subtract(1, 'days').format('YYYY-MM-DD');
+    const previousDay = moment().subtract(1, "days").format("YYYY-MM-DD");
 
     // Query to get punch-in and punch-out times for the previous day
     const result = await pool.query(
@@ -199,17 +206,18 @@ export const checkPreviousDayAttendance = async (req: Request, res: Response) =>
     );
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'No attendance record found for the previous day' });
+      return res
+        .status(404)
+        .json({ message: "No attendance record found for the previous day" });
     }
 
     // Return the punch-in and punch-out times
     res.status(200).json(result.rows[0]);
   } catch (error) {
-    console.error('Error fetching previous day attendance:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching previous day attendance:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 //check leave balance
 export const checkLeaveBalance = async (req: Request, res: Response) => {
@@ -264,11 +272,9 @@ export const addPost = async (req: Request, res: Response) => {
   try {
     // Ensure all required fields are provided
     if (!title || !comments || !photo_url || !user_id) {
-      return res
-        .status(400)
-        .json({
-          message: "Title, comments, photo URL, and user ID are required",
-        });
+      return res.status(400).json({
+        message: "Title, comments, photo URL, and user ID are required",
+      });
     }
 
     // Insert the new post into the feed table
@@ -385,12 +391,10 @@ export const addEmployee = async (req: Request, res: Response) => {
       ]
     );
 
-    res
-      .status(201)
-      .json({
-        message: "Employee details added successfully",
-        employee: result.rows[0],
-      });
+    res.status(201).json({
+      message: "Employee details added successfully",
+      employee: result.rows[0],
+    });
   } catch (error) {
     console.error("Error adding employee details:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -459,12 +463,10 @@ export const addReferral = async (req: Request, res: Response) => {
       !phone_number ||
       !referred_by_user_id
     ) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Candidate name, gender, email, country code, phone number, and referred by user ID are required",
-        });
+      return res.status(400).json({
+        message:
+          "Candidate name, gender, email, country code, phone number, and referred by user ID are required",
+      });
     }
 
     // Insert the new referral into the referrals table
@@ -482,12 +484,10 @@ export const addReferral = async (req: Request, res: Response) => {
       ]
     );
 
-    res
-      .status(201)
-      .json({
-        message: "Referral added successfully",
-        referral: result.rows[0],
-      });
+    res.status(201).json({
+      message: "Referral added successfully",
+      referral: result.rows[0],
+    });
   } catch (error) {
     console.error("Error adding referral:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -598,12 +598,10 @@ export const addCoreValue = async (req: Request, res: Response) => {
       [title, description]
     );
 
-    res
-      .status(201)
-      .json({
-        message: "Core value added successfully",
-        coreValue: result.rows[0],
-      });
+    res.status(201).json({
+      message: "Core value added successfully",
+      coreValue: result.rows[0],
+    });
   } catch (error) {
     console.error("Error adding core value:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -652,24 +650,20 @@ export const upsertCompanyInfo = async (req: Request, res: Response) => {
         "UPDATE company_info SET content = $1, updated_at = CURRENT_TIMESTAMP WHERE type = $2 RETURNING *",
         [content, type]
       );
-      return res
-        .status(200)
-        .json({
-          message: "Company info updated successfully",
-          companyInfo: result.rows[0],
-        });
+      return res.status(200).json({
+        message: "Company info updated successfully",
+        companyInfo: result.rows[0],
+      });
     } else {
       // Insert a new entry
       const result = await pool.query(
         "INSERT INTO company_info (type, content) VALUES ($1, $2) RETURNING *",
         [type, content]
       );
-      return res
-        .status(201)
-        .json({
-          message: "Company info added successfully",
-          companyInfo: result.rows[0],
-        });
+      return res.status(201).json({
+        message: "Company info added successfully",
+        companyInfo: result.rows[0],
+      });
     }
   } catch (error) {
     console.error("Error upserting company info:", error);
@@ -854,29 +848,30 @@ export const getLeaveBalance = async (
   }
 };
 
-
-
- 
 // Post a New Entry to Wall of Fame
 export const addWallOfFameEntry = async (req: Request, res: Response) => {
-  const {  badge_url, user_id,comment } = req.body;
+  const { badge_url, user_id, comment } = req.body;
 
   try {
     // Ensure all required fields are provided
-    if ( !badge_url || !comment || !user_id) {
-      return res.status(400).json({ message: ' badge_url, comment, and user ID are required' });
+    if (!badge_url || !comment || !user_id) {
+      return res
+        .status(400)
+        .json({ message: " badge_url, comment, and user ID are required" });
     }
 
     // Insert the new entry into the wall_of_fame table
     const result = await pool.query(
-      'INSERT INTO wall_of_fame ( badge_url, comment, user_id,created_at, updated_at) VALUES ($1, $2, $3, NOW(),NoW()) RETURNING *',
-      [ badge_url, comment, user_id]
+      "INSERT INTO wall_of_fame ( badge_url, comment, user_id,created_at, updated_at) VALUES ($1, $2, $3, NOW(),NoW()) RETURNING *",
+      [badge_url, comment, user_id]
     );
 
-    res.status(201).json({ message: 'Entry added successfully', entry: result.rows[0] });
+    res
+      .status(201)
+      .json({ message: "Entry added successfully", entry: result.rows[0] });
   } catch (error) {
-    console.error('Error adding entry:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error adding entry:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -884,36 +879,295 @@ export const addWallOfFameEntry = async (req: Request, res: Response) => {
 export const getAllWallOfFameEntries = async (req: Request, res: Response) => {
   try {
     // Query the database to get all entries from the wall_of_fame table
-    const result = await pool.query('SELECT * FROM wall_of_fame ORDER BY created_at DESC');
-    
+    const result = await pool.query(
+      "SELECT * FROM wall_of_fame ORDER BY created_at DESC"
+    );
+
     // Return the retrieved entries as a response
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error fetching entries:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching entries:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // Get Wall of Fame Entry by User ID
-export const getWallOfFameEntryByUserId = async (req: Request, res: Response) => {
+export const getWallOfFameEntryByUserId = async (
+  req: Request,
+  res: Response
+) => {
   const { user_id } = req.params;
 
   try {
     // Query the database to get all entries by the specified user_id
-    const result = await pool.query('SELECT * FROM wall_of_fame WHERE user_id = $1', [user_id]);
+    const result = await pool.query(
+      "SELECT * FROM wall_of_fame WHERE user_id = $1",
+      [user_id]
+    );
 
     // Check if entries were found for the given user_id
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'No entries found for this user' });
+      return res
+        .status(404)
+        .json({ message: "No entries found for this user" });
     }
 
     // Return the retrieved entries as a response
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error fetching entries:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching entries:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+  //Assett Allocation
+  export const allotAsset = async (req: Request, res: Response) => {
+    const { userId, assetId } = req.body;
+
+    try {
+        // Check if the asset is already allotted
+        const checkAllotment = await pool.query(
+            "SELECT * FROM asset_allotment WHERE asset_id = $1 AND return_date IS NULL",
+            [assetId]
+        );
+
+        if (checkAllotment.rowCount && checkAllotment.rowCount > 0) {
+            return res.status(400).json({ message: "Asset is already allotted" });
+        }
+
+        // Insert the allotment record
+        const allotmentDate = moment().format("YYYY-MM-DD");
+        await pool.query(
+            "INSERT INTO asset_allotment (user_id, asset_id, allotment_date) VALUES ($1, $2, $3)",
+            [userId, assetId, allotmentDate]
+        );
+
+        res.status(201).json({ message: "Asset allotted successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+//Get alloted asset to the user
+export const getUserAssets = async (req: Request, res: Response) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await pool.query(
+            `SELECT aa.id as allotment_id, a.product, a.asset_type, a.serial_number, a.asset_code, aa.allotment_date, aa.return_date 
+            FROM asset_allotment aa 
+            JOIN assets a ON aa.asset_id = a.id 
+            WHERE aa.user_id = $1`,
+            [userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "No assets found for this user" });
+        }
+
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+// to get all assets information
+export const getAllAssets = async (req: Request, res: Response) => {
+    try {
+        const result = await pool.query("SELECT * FROM assets");
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "No assets found" });
+        }
+
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// Apply Attendance Regularization
+export const applyRegularization = async (req:Request, res:Response) => {
+  const { user_id, start_date, end_date, start_time, start_time_minutes, end_time, end_time_minutes, comments } = req.body;
+
+  // Validate input
+  if (!user_id || !start_date || !end_date || !start_time || !end_time) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    // Insert the regularization request into the database
+    const result = await pool.query(
+      `
+      INSERT INTO attendance_regularization (user_id, start_date, end_date, start_time, start_time_minutes, end_time, end_time_minutes, comments)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+      `,
+      [user_id, start_date, end_date, start_time, start_time_minutes, end_time, end_time_minutes, comments]
+    );
+
+    res.status(201).json({ message: 'Regularization request applied successfully', data: result.rows[0] });
+  } catch (error) {
+    console.error('Error applying regularization request:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
+//get ALL regularizations
+export const getAllRegularizations = async (req:Request, res:Response) => {
+  try {
+    // Fetch all regularization requests from the database
+    const result = await pool.query(
+      `
+      SELECT * FROM attendance_regularization
+      ORDER BY created_at DESC
+      `
+    );
 
+    res.status(200).json({ data: result.rows });
+  } catch (error) {
+    console.error('Error fetching regularization requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+//getPendingRequests
+export const getPendingRequests = async (req: Request, res: Response) => {
+  try {
+      // Fetch pending leave requests
+      const leaveRequestsQuery = `
+          SELECT * FROM leave_requests
+          WHERE status = 'Pending'
+          
+      `;
+      const leaveRequestsResult = await pool.query(leaveRequestsQuery);
 
+      // Fetch pending attendance regularization requests
+      const regularizationRequestsQuery = `
+          SELECT * FROM attendance_regularization
+          WHERE status = 'Pending'
+      `;
+      const regularizationRequestsResult = await pool.query(regularizationRequestsQuery);
+
+      res.status(200).json({
+          leaveRequests: leaveRequestsResult.rows,
+          regularizationRequests: regularizationRequestsResult.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching pending requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+//Approved Requests
+export const getApprovedRequests = async (req: Request, res: Response) => {
+  try {
+      // Fetch approved leave requests
+      const approvedLeaveRequestsQuery = `
+          SELECT * FROM leave_requests
+          WHERE status = 'Approved'
+          
+      `;
+      const approvedLeaveRequestsResult = await pool.query(approvedLeaveRequestsQuery);
+
+      // Fetch approved attendance regularization requests
+      const approvedRegularizationRequestsQuery = `
+          SELECT * FROM attendance_regularization
+          WHERE status = 'Approved'
+          
+      `;
+      const approvedRegularizationRequestsResult = await pool.query(approvedRegularizationRequestsQuery);
+
+      res.status(200).json({
+          approvedLeaveRequests: approvedLeaveRequestsResult.rows,
+          approvedRegularizationRequests: approvedRegularizationRequestsResult.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching approved requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+//Rejected requests
+export const getRejectedRequests = async (req: Request, res: Response) => {
+  try {
+      // Fetch rejected leave requests
+      const rejectedLeaveRequestsQuery = `
+          SELECT * FROM leave_requests
+          WHERE status = 'Rejected'
+          
+      `;
+      const rejectedLeaveRequestsResult = await pool.query(rejectedLeaveRequestsQuery);
+
+      // Fetch rejected attendance regularization requests
+      const rejectedRegularizationRequestsQuery = `
+          SELECT * FROM attendance_regularization
+          WHERE status = 'Rejected'
+         
+      `;
+      const rejectedRegularizationRequestsResult = await pool.query(rejectedRegularizationRequestsQuery);
+
+      res.status(200).json({
+          rejectedLeaveRequests: rejectedLeaveRequestsResult.rows,
+          rejectedRegularizationRequests: rejectedRegularizationRequestsResult.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching rejected requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+//Drafts
+export const getDraftRequests = async (req: Request, res: Response) => {
+  try {
+      // Fetch draft leave requests
+      const draftLeaveRequestsQuery = `
+          SELECT * FROM leave_requests
+          WHERE status = 'Draft'
+        
+      `;
+      const draftLeaveRequestsResult = await pool.query(draftLeaveRequestsQuery);
+
+      // Fetch draft attendance regularization requests
+      const draftRegularizationRequestsQuery = `
+          SELECT * FROM attendance_regularization
+          WHERE status = 'Draft'
+        
+      `;
+      const draftRegularizationRequestsResult = await pool.query(draftRegularizationRequestsQuery);
+
+      res.status(200).json({
+          draftLeaveRequests: draftLeaveRequestsResult.rows,
+          draftRegularizationRequests: draftRegularizationRequestsResult.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching draft requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+//Undo 
+export const getUndoRequests = async (req: Request, res: Response) => {
+  try {
+      // Fetch undo leave requests
+      const undoLeaveRequestsQuery = `
+          SELECT * FROM leave_requests
+          WHERE status = 'Undo'
+       
+      `;
+      const undoLeaveRequestsResult = await pool.query(undoLeaveRequestsQuery);
+
+      // Fetch undo attendance regularization requests
+      const undoRegularizationRequestsQuery = `
+          SELECT * FROM attendance_regularization
+          WHERE status = 'Undo'
+          
+      `;
+      const undoRegularizationRequestsResult = await pool.query(undoRegularizationRequestsQuery);
+
+      res.status(200).json({
+          undoLeaveRequests: undoLeaveRequestsResult.rows,
+          undoRegularizationRequests: undoRegularizationRequestsResult.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching undo requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
