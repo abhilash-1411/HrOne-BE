@@ -949,26 +949,38 @@ export const getWallOfFameEntryByUserId = async (
 };
 //Get alloted asset to the user
 export const getUserAssets = async (req: Request, res: Response) => {
-    const { userId } = req.params;
+  const { userId } = req.params;
 
-    try {
-        const result = await pool.query(
-            `SELECT aa.id as allotment_id, a.product, a.asset_type, a.serial_number, a.asset_code, aa.allotment_date, aa.return_date 
-            FROM asset_allotment aa 
-            JOIN assets a ON aa.asset_id = a.id 
-            WHERE aa.user_id = $1`,
-            [userId]
-        );
+  try {
+      const result = await pool.query(
+          `SELECT aa.id as allotment_id, a.product, a.asset_type, a.serial_number, a.asset_code, aa.allotment_date, 
+                  aa.return_date, aa.acknowledge, aa.overdue 
+           FROM asset_allotment aa 
+           JOIN assets a ON aa.asset_id = a.id 
+           WHERE aa.user_id = $1`,
+          [userId]
+      );
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: "No assets found for this user" });
-        }
+      if (result.rowCount === 0) {
+          return res.status(404).json({ message: "No assets found for this user" });
+      }
 
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+      const assets = result.rows.map(asset => {
+          if (!asset.acknowledge) {
+              const currentDate = new Date();
+              const returnDate = new Date(asset.return_date);
+              if (currentDate > returnDate) {
+                  asset.overdue = true;
+              }
+          }
+          return asset;
+      });
+
+      res.status(200).json(assets);
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+  }
 };
 // to get all assets information
 export const getAllAssets = async (req: Request, res: Response) => {
@@ -1168,6 +1180,97 @@ export const getUndoRequests = async (req: Request, res: Response) => {
       });
   } catch (error) {
       console.error('Error fetching undo requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// API to create a new Helpdesk ticket
+export const createHelpdeskTicket = async (req: Request, res: Response) => {
+  const { category, subcategory, priority, description } = req.body;
+
+  try {
+      // Validate the inputs
+      if (!category || !subcategory || !priority || !description) {
+          return res.status(400).json({ message: 'All fields are required.' });
+      }
+
+      // Insert the ticket into the database
+      const result = await pool.query(
+          `INSERT INTO tickets (category, subcategory, priority, description) 
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [category, subcategory, priority, description]
+      );
+
+      res.status(201).json({ message: 'Ticket created successfully', ticket: result.rows[0] });
+  } catch (error) {
+      console.error('Error creating ticket:', error);
+      res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// API to fetch all tickets
+export const getAllTickets = async (req: Request, res: Response) => {
+  try {
+      const result = await pool.query(`SELECT * FROM tickets ORDER BY created_at DESC`);
+
+      res.status(200).json(result.rows);
+  } catch (error) {
+      console.error('Error fetching tickets:', error);
+      res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// API to fetch tickets by status (Pending, Approved, Rejected)
+export const getTicketsByStatus = async (req: Request, res: Response) => {
+  const { status } = req.params;
+
+  try {
+      const result = await pool.query(
+          `SELECT * FROM tickets WHERE status = $1 ORDER BY created_at DESC`,
+          [status]
+      );
+
+      res.status(200).json(result.rows);
+  } catch (error) {
+      console.error('Error fetching tickets by status:', error);
+      res.status(500).json({ message: 'Internal server error' });
+  }
+};
+//Resignation request
+export const createResignationRequest = async (req: Request, res: Response) => {
+  const { user_id, request_date, proposed_lwd, reason, comments } = req.body;
+
+  try {
+      // Calculate Last Working Date (LWD) based on notice period
+      const noticePeriod = 90;  // Default notice period
+      const calculatedLWD = new Date(new Date(request_date).getTime() + (noticePeriod * 24 * 60 * 60 * 1000));
+
+      const result = await pool.query(
+          `INSERT INTO resignation_requests (user_id, request_date, notice_period, lwd, proposed_lwd, reason, comments)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *`,
+          [user_id, request_date, noticePeriod, calculatedLWD, proposed_lwd, reason, comments]
+      );
+
+      res.status(201).json({ message: "Resignation request submitted successfully", data: result.rows[0] });
+  } catch (error) {
+      console.error('Error creating resignation request:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+export const getResignationRequests = async (req: Request, res: Response) => {
+  try {
+      const result = await pool.query(
+          `SELECT * FROM resignation_requests ORDER BY created_at DESC`
+      );
+
+      if (result.rowCount === 0) {
+          return res.status(404).json({ message: "No resignation requests found" });
+      }
+
+      res.status(200).json(result.rows);
+  } catch (error) {
+      console.error('Error fetching resignation requests:', error);
       res.status(500).json({ error: 'Internal server error' });
   }
 };

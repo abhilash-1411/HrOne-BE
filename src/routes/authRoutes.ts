@@ -40,6 +40,11 @@ import {
   getApprovedRequests,
   getDraftRequests,
   getUndoRequests,
+  createHelpdeskTicket,
+  getAllTickets,
+  getTicketsByStatus,
+  createResignationRequest,
+  getResignationRequests,
 } from "../controllers/authController";
 
 const router = Router();
@@ -111,6 +116,16 @@ router.get("/approved-requests",getApprovedRequests)
 router.get("/rejected-requests",getRejectedRequests)
 router.get('/draft-requests', getDraftRequests);
 router.get('/undo-requests', getUndoRequests);
+
+//Helpdesk tickets
+router.post('/tickets', createHelpdeskTicket);
+router.get('/tickets', getAllTickets);
+router.get('/tickets/status/:status', getTicketsByStatus);
+
+//resignations
+router.post('/resignation', createResignationRequest);
+router.get('/resignation', getResignationRequests);
+
 
 
 export default router;
