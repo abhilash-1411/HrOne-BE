@@ -1274,3 +1274,45 @@ export const getResignationRequests = async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Internal server error' });
   }
 };
+export const createOnDutyRequest = async (req: Request, res: Response) => {
+  const {
+      userId, reason,  startDate,  endDate,   startHours,startMinutes,endHours,endMinutes,
+      comments
+  } = req.body;
+
+  try {
+      const result = await pool.query(
+          `INSERT INTO on_duty_requests 
+              (user_id, reason, start_date, end_date, start_hours, start_minutes, end_hours, end_minutes, comments) 
+          VALUES 
+              ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING *`,
+          [userId, reason, startDate, endDate, startHours, startMinutes, endHours, endMinutes, comments]
+      );
+
+      res.status(201).json({
+          message: 'On Duty request created successfully',
+          data: result.rows[0]
+      });
+  } catch (error) {
+      console.error('Error creating On Duty request:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getAllOnDutyRequests = async (req: Request, res: Response) => {
+  try {
+      const result = await pool.query(
+          `SELECT * FROM on_duty_requests ORDER BY created_at DESC`
+      );
+
+      if (result.rowCount === 0) {
+          return res.status(404).json({ message: "No On Duty requests found" });
+      }
+
+      res.status(200).json(result.rows);
+  } catch (error) {
+      console.error('Error fetching On Duty requests:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+};

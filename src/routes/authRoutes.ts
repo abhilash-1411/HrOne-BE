@@ -45,6 +45,8 @@ import {
   getTicketsByStatus,
   createResignationRequest,
   getResignationRequests,
+  createOnDutyRequest,
+  getAllOnDutyRequests,
 } from "../controllers/authController";
 
 const router = Router();
@@ -126,6 +128,8 @@ router.get('/tickets/status/:status', getTicketsByStatus);
 router.post('/resignation', createResignationRequest);
 router.get('/resignation', getResignationRequests);
 
-
+//on-duty req
+router.post('/on-duty', createOnDutyRequest);
+router.get('/on-duty', getAllOnDutyRequests);
 
 export default router;
