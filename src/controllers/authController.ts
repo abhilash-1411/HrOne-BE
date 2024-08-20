@@ -460,7 +460,6 @@ export const addReferral = async (req: Request, res: Response) => {
     phone_number,
     comments,
     portfolio_url,
-    referred_by_user_id,
   } = req.body;
 
   try {
@@ -470,18 +469,17 @@ export const addReferral = async (req: Request, res: Response) => {
       !gender ||
       !email ||
       !country_code ||
-      !phone_number ||
-      !referred_by_user_id
+      !phone_number
     ) {
       return res.status(400).json({
         message:
-          "Candidate name, gender, email, country code, phone number, and referred by user ID are required",
+          "Candidate name, gender, email, country code, and phone number are required",
       });
     }
 
     // Insert the new referral into the referrals table
     const result = await pool.query(
-      "INSERT INTO referrals (candidate_name, gender, email, country_code, phone_number, comments, portfolio_url, referred_by_user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+      "INSERT INTO referrals (candidate_name, gender, email, country_code, phone_number, comments, portfolio_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
       [
         candidate_name,
         gender,
@@ -490,7 +488,6 @@ export const addReferral = async (req: Request, res: Response) => {
         phone_number,
         comments,
         portfolio_url,
-        referred_by_user_id,
       ]
     );
 
@@ -503,6 +500,7 @@ export const addReferral = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 // Get All Referrals API
 export const getAllReferrals = async (req: Request, res: Response) => {
