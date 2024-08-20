@@ -64,7 +64,16 @@ export const getUserById = async (req: Request, res: Response) => {
 // Register API
 
 export const register = async (req: Request, res: Response) => {
-  const { name, email, password, confirmPassword } = req.body;
+  let { name, email, password, confirmPassword } = req.body;
+
+  // Convert password and confirmPassword to numbers
+  password = Number(password);
+  confirmPassword = Number(confirmPassword);
+
+  // Check if the conversion was successful (i.e., not NaN)
+  if (isNaN(password) || isNaN(confirmPassword)) {
+    return res.status(400).json({ message: "Passwords must be valid numbers" });
+  }
 
   // Check if password and confirmPassword match
   if (password !== confirmPassword) {
@@ -81,7 +90,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Hash the password before saving it to the database
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password.toString(), 10);
     await pool.query(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
       [name, email, hashedPassword]
@@ -93,6 +102,7 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 // Login API
 export const login = async (req: Request, res: Response) => {
@@ -1301,18 +1311,18 @@ export const createOnDutyRequest = async (req: Request, res: Response) => {
 };
 
 export const getAllOnDutyRequests = async (req: Request, res: Response) => {
-  try {
-      const result = await pool.query(
-          `SELECT * FROM on_duty_requests ORDER BY created_at DESC`
-      );
+    try {
+        const result = await pool.query(
+            `SELECT * FROM on_duty_requests ORDER BY created_at DESC`
+        );
 
-      if (result.rowCount === 0) {
-          return res.status(404).json({ message: "No On Duty requests found" });
-      }
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "No On Duty requests found" });
+        }
 
-      res.status(200).json(result.rows);
-  } catch (error) {
-      console.error('Error fetching On Duty requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
-  }
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching On Duty requests:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 };
