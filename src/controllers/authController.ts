@@ -123,7 +123,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign({ userId: user.id }, "your_jwt_secret", {
-      expiresIn: "1h",
+      // expiresIn: "1h",
     });
 
     res.status(200).json({ token });
