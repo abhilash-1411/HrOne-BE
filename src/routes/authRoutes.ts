@@ -110,26 +110,26 @@ router.get("/assets", getAllAssets);
 
 //Regularization
 router.post("/regularlarization", applyRegularization);
-router.get("/regularlarization",getAllRegularizations)
+router.get("/regularlarization", getAllRegularizations);
 
 //Request
-router.get("/pending-requests",getPendingRequests)
-router.get("/approved-requests",getApprovedRequests)
-router.get("/rejected-requests",getRejectedRequests)
-router.get('/draft-requests', getDraftRequests);
-router.get('/undo-requests', getUndoRequests);
+router.get("/pending-requests", getPendingRequests);
+router.get("/approved-requests", getApprovedRequests);
+router.get("/rejected-requests", getRejectedRequests);
+router.get("/draft-requests", getDraftRequests);
+router.get("/undo-requests", getUndoRequests);
 
 //Helpdesk tickets
-router.post('/tickets', createHelpdeskTicket);
-router.get('/tickets', getAllTickets);
-router.get('/tickets/status/:status', getTicketsByStatus);
+router.post("/tickets", createHelpdeskTicket);
+router.get("/tickets", getAllTickets);
+router.get("/tickets/status/:status", getTicketsByStatus);
 
 //resignations
-router.post('/resignation', createResignationRequest);
-router.get('/resignation', getResignationRequests);
+router.post("/resignation", createResignationRequest);
+router.get("/resignation", getResignationRequests);
 
 //on-duty req
-router.post('/on-duty', createOnDutyRequest);
-router.get('/on-duty', getAllOnDutyRequests);
+router.post("/on-duty", createOnDutyRequest);
+router.get("/on-duty", getAllOnDutyRequests);
 
 export default router;

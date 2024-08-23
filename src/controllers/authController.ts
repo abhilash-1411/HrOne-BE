@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import pool from "../db/db";
 import moment, { isDate } from "moment";
 
-
 //Status Check
 export const checkStatus = (req: Request, res: Response) => {
   res.status(200).json({ status: "OK", message: "API is working properly" });
@@ -62,18 +61,8 @@ export const getUserById = async (req: Request, res: Response) => {
 };
 
 // Register API
-
 export const register = async (req: Request, res: Response) => {
-  let { name, email, password, confirmPassword } = req.body;
-
-  // Convert password and confirmPassword to numbers
-  password = Number(password);
-  confirmPassword = Number(confirmPassword);
-
-  // Check if the conversion was successful (i.e., not NaN)
-  if (isNaN(password) || isNaN(confirmPassword)) {
-    return res.status(400).json({ message: "Passwords must be valid numbers" });
-  }
+  const { name, email, password, confirmPassword } = req.body;
 
   // Check if password and confirmPassword match
   if (password !== confirmPassword) {
@@ -85,12 +74,14 @@ export const register = async (req: Request, res: Response) => {
     const result = await pool.query("SELECT * FROM users WHERE email = $1", [
       email,
     ]);
-    if (result.rowCount && result.rowCount > 0) {
+    const emailExists = result.rowCount ?? 0 > 0; // Handling potential null by treating it as 0
+
+    if (emailExists) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
     // Hash the password before saving it to the database
-    const hashedPassword = await bcrypt.hash(password.toString(), 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     await pool.query(
       "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
       [name, email, hashedPassword]
@@ -98,11 +89,10 @@ export const register = async (req: Request, res: Response) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Error during registration:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 // Login API
 export const login = async (req: Request, res: Response) => {
@@ -134,7 +124,6 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Forgot Password API
-
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -167,11 +156,9 @@ export const checkAttendance = async (req: Request, res: Response) => {
   try {
     // Ensure the required parameters are provided
     if (!user_id || !punch_in_time || !punch_out_time) {
-      return res
-        .status(400)
-        .json({
-          message: "User ID, punch-in time, and punch-out time are required",
-        });
+      return res.status(400).json({
+        message: "User ID, punch-in time, and punch-out time are required",
+      });
     }
 
     // Calculate the difference in hours between punch-in and punch-out times
@@ -500,7 +487,6 @@ export const addReferral = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 // Get All Referrals API
 export const getAllReferrals = async (req: Request, res: Response) => {
@@ -927,92 +913,101 @@ export const getWallOfFameEntryByUserId = async (
     res.status(500).json({ message: "Internal server error" });
   }
 };
-  //Assett Allocation
-  export const allotAsset = async (req: Request, res: Response) => {
-    const { userId, assetId } = req.body;
+//Assett Allocation
+export const allotAsset = async (req: Request, res: Response) => {
+  const { userId, assetId } = req.body;
 
-    try {
-        // Check if the asset is already allotted
-        const checkAllotment = await pool.query(
-            "SELECT * FROM asset_allotment WHERE asset_id = $1 AND return_date IS NULL",
-            [assetId]
-        );
+  try {
+    // Check if the asset is already allotted
+    const checkAllotment = await pool.query(
+      "SELECT * FROM asset_allotment WHERE asset_id = $1 AND return_date IS NULL",
+      [assetId]
+    );
 
-        if (checkAllotment.rowCount && checkAllotment.rowCount > 0) {
-            return res.status(400).json({ message: "Asset is already allotted" });
-        }
-
-        // Insert the allotment record
-        const allotmentDate = moment().format("YYYY-MM-DD");
-        await pool.query(
-            "INSERT INTO asset_allotment (user_id, asset_id, allotment_date) VALUES ($1, $2, $3)",
-            [userId, assetId, allotmentDate]
-        );
-
-        res.status(201).json({ message: "Asset allotted successfully" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+    if (checkAllotment.rowCount && checkAllotment.rowCount > 0) {
+      return res.status(400).json({ message: "Asset is already allotted" });
     }
+
+    // Insert the allotment record
+    const allotmentDate = moment().format("YYYY-MM-DD");
+    await pool.query(
+      "INSERT INTO asset_allotment (user_id, asset_id, allotment_date) VALUES ($1, $2, $3)",
+      [userId, assetId, allotmentDate]
+    );
+
+    res.status(201).json({ message: "Asset allotted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 //Get alloted asset to the user
 export const getUserAssets = async (req: Request, res: Response) => {
   const { userId } = req.params;
 
   try {
-      const result = await pool.query(
-          `SELECT aa.id as allotment_id, a.product, a.asset_type, a.serial_number, a.asset_code, aa.allotment_date, 
+    const result = await pool.query(
+      `SELECT aa.id as allotment_id, a.product, a.asset_type, a.serial_number, a.asset_code, aa.allotment_date, 
                   aa.return_date, aa.acknowledge, aa.overdue 
            FROM asset_allotment aa 
            JOIN assets a ON aa.asset_id = a.id 
            WHERE aa.user_id = $1`,
-          [userId]
-      );
+      [userId]
+    );
 
-      if (result.rowCount === 0) {
-          return res.status(404).json({ message: "No assets found for this user" });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No assets found for this user" });
+    }
+
+    const assets = result.rows.map((asset) => {
+      if (!asset.acknowledge) {
+        const currentDate = new Date();
+        const returnDate = new Date(asset.return_date);
+        if (currentDate > returnDate) {
+          asset.overdue = true;
+        }
       }
+      return asset;
+    });
 
-      const assets = result.rows.map(asset => {
-          if (!asset.acknowledge) {
-              const currentDate = new Date();
-              const returnDate = new Date(asset.return_date);
-              if (currentDate > returnDate) {
-                  asset.overdue = true;
-              }
-          }
-          return asset;
-      });
-
-      res.status(200).json(assets);
+    res.status(200).json(assets);
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 // to get all assets information
 export const getAllAssets = async (req: Request, res: Response) => {
-    try {
-        const result = await pool.query("SELECT * FROM assets");
+  try {
+    const result = await pool.query("SELECT * FROM assets");
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: "No assets found" });
-        }
-
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No assets found" });
     }
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Apply Attendance Regularization
-export const applyRegularization = async (req:Request, res:Response) => {
-  const { user_id, start_date, end_date, start_time, start_time_minutes, end_time, end_time_minutes, comments } = req.body;
+export const applyRegularization = async (req: Request, res: Response) => {
+  const {
+    user_id,
+    start_date,
+    end_date,
+    start_time,
+    start_time_minutes,
+    end_time,
+    end_time_minutes,
+    comments,
+  } = req.body;
 
   // Validate input
   if (!user_id || !start_date || !end_date || !start_time || !end_time) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
@@ -1023,18 +1018,32 @@ export const applyRegularization = async (req:Request, res:Response) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
       `,
-      [user_id, start_date, end_date, start_time, start_time_minutes, end_time, end_time_minutes, comments]
+      [
+        user_id,
+        start_date,
+        end_date,
+        start_time,
+        start_time_minutes,
+        end_time,
+        end_time_minutes,
+        comments,
+      ]
     );
 
-    res.status(201).json({ message: 'Regularization request applied successfully', data: result.rows[0] });
+    res
+      .status(201)
+      .json({
+        message: "Regularization request applied successfully",
+        data: result.rows[0],
+      });
   } catch (error) {
-    console.error('Error applying regularization request:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error applying regularization request:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 //get ALL regularizations
-export const getAllRegularizations = async (req:Request, res:Response) => {
+export const getAllRegularizations = async (req: Request, res: Response) => {
   try {
     // Fetch all regularization requests from the database
     const result = await pool.query(
@@ -1046,149 +1055,163 @@ export const getAllRegularizations = async (req:Request, res:Response) => {
 
     res.status(200).json({ data: result.rows });
   } catch (error) {
-    console.error('Error fetching regularization requests:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching regularization requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 //getPendingRequests
 export const getPendingRequests = async (req: Request, res: Response) => {
   try {
-      // Fetch pending leave requests
-      const leaveRequestsQuery = `
+    // Fetch pending leave requests
+    const leaveRequestsQuery = `
           SELECT * FROM leave_requests
           WHERE status = 'Pending'
           
       `;
-      const leaveRequestsResult = await pool.query(leaveRequestsQuery);
+    const leaveRequestsResult = await pool.query(leaveRequestsQuery);
 
-      // Fetch pending attendance regularization requests
-      const regularizationRequestsQuery = `
+    // Fetch pending attendance regularization requests
+    const regularizationRequestsQuery = `
           SELECT * FROM attendance_regularization
           WHERE status = 'Pending'
       `;
-      const regularizationRequestsResult = await pool.query(regularizationRequestsQuery);
+    const regularizationRequestsResult = await pool.query(
+      regularizationRequestsQuery
+    );
 
-      res.status(200).json({
-          leaveRequests: leaveRequestsResult.rows,
-          regularizationRequests: regularizationRequestsResult.rows,
-      });
+    res.status(200).json({
+      leaveRequests: leaveRequestsResult.rows,
+      regularizationRequests: regularizationRequestsResult.rows,
+    });
   } catch (error) {
-      console.error('Error fetching pending requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching pending requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 //Approved Requests
 export const getApprovedRequests = async (req: Request, res: Response) => {
   try {
-      // Fetch approved leave requests
-      const approvedLeaveRequestsQuery = `
+    // Fetch approved leave requests
+    const approvedLeaveRequestsQuery = `
           SELECT * FROM leave_requests
           WHERE status = 'Approved'
           
       `;
-      const approvedLeaveRequestsResult = await pool.query(approvedLeaveRequestsQuery);
+    const approvedLeaveRequestsResult = await pool.query(
+      approvedLeaveRequestsQuery
+    );
 
-      // Fetch approved attendance regularization requests
-      const approvedRegularizationRequestsQuery = `
+    // Fetch approved attendance regularization requests
+    const approvedRegularizationRequestsQuery = `
           SELECT * FROM attendance_regularization
           WHERE status = 'Approved'
           
       `;
-      const approvedRegularizationRequestsResult = await pool.query(approvedRegularizationRequestsQuery);
+    const approvedRegularizationRequestsResult = await pool.query(
+      approvedRegularizationRequestsQuery
+    );
 
-      res.status(200).json({
-          approvedLeaveRequests: approvedLeaveRequestsResult.rows,
-          approvedRegularizationRequests: approvedRegularizationRequestsResult.rows,
-      });
+    res.status(200).json({
+      approvedLeaveRequests: approvedLeaveRequestsResult.rows,
+      approvedRegularizationRequests: approvedRegularizationRequestsResult.rows,
+    });
   } catch (error) {
-      console.error('Error fetching approved requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching approved requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 //Rejected requests
 export const getRejectedRequests = async (req: Request, res: Response) => {
   try {
-      // Fetch rejected leave requests
-      const rejectedLeaveRequestsQuery = `
+    // Fetch rejected leave requests
+    const rejectedLeaveRequestsQuery = `
           SELECT * FROM leave_requests
           WHERE status = 'Rejected'
           
       `;
-      const rejectedLeaveRequestsResult = await pool.query(rejectedLeaveRequestsQuery);
+    const rejectedLeaveRequestsResult = await pool.query(
+      rejectedLeaveRequestsQuery
+    );
 
-      // Fetch rejected attendance regularization requests
-      const rejectedRegularizationRequestsQuery = `
+    // Fetch rejected attendance regularization requests
+    const rejectedRegularizationRequestsQuery = `
           SELECT * FROM attendance_regularization
           WHERE status = 'Rejected'
          
       `;
-      const rejectedRegularizationRequestsResult = await pool.query(rejectedRegularizationRequestsQuery);
+    const rejectedRegularizationRequestsResult = await pool.query(
+      rejectedRegularizationRequestsQuery
+    );
 
-      res.status(200).json({
-          rejectedLeaveRequests: rejectedLeaveRequestsResult.rows,
-          rejectedRegularizationRequests: rejectedRegularizationRequestsResult.rows,
-      });
+    res.status(200).json({
+      rejectedLeaveRequests: rejectedLeaveRequestsResult.rows,
+      rejectedRegularizationRequests: rejectedRegularizationRequestsResult.rows,
+    });
   } catch (error) {
-      console.error('Error fetching rejected requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching rejected requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 //Drafts
 export const getDraftRequests = async (req: Request, res: Response) => {
   try {
-      // Fetch draft leave requests
-      const draftLeaveRequestsQuery = `
+    // Fetch draft leave requests
+    const draftLeaveRequestsQuery = `
           SELECT * FROM leave_requests
           WHERE status = 'Draft'
         
       `;
-      const draftLeaveRequestsResult = await pool.query(draftLeaveRequestsQuery);
+    const draftLeaveRequestsResult = await pool.query(draftLeaveRequestsQuery);
 
-      // Fetch draft attendance regularization requests
-      const draftRegularizationRequestsQuery = `
+    // Fetch draft attendance regularization requests
+    const draftRegularizationRequestsQuery = `
           SELECT * FROM attendance_regularization
           WHERE status = 'Draft'
         
       `;
-      const draftRegularizationRequestsResult = await pool.query(draftRegularizationRequestsQuery);
+    const draftRegularizationRequestsResult = await pool.query(
+      draftRegularizationRequestsQuery
+    );
 
-      res.status(200).json({
-          draftLeaveRequests: draftLeaveRequestsResult.rows,
-          draftRegularizationRequests: draftRegularizationRequestsResult.rows,
-      });
+    res.status(200).json({
+      draftLeaveRequests: draftLeaveRequestsResult.rows,
+      draftRegularizationRequests: draftRegularizationRequestsResult.rows,
+    });
   } catch (error) {
-      console.error('Error fetching draft requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching draft requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
-//Undo 
+//Undo
 export const getUndoRequests = async (req: Request, res: Response) => {
   try {
-      // Fetch undo leave requests
-      const undoLeaveRequestsQuery = `
+    // Fetch undo leave requests
+    const undoLeaveRequestsQuery = `
           SELECT * FROM leave_requests
           WHERE status = 'Undo'
        
       `;
-      const undoLeaveRequestsResult = await pool.query(undoLeaveRequestsQuery);
+    const undoLeaveRequestsResult = await pool.query(undoLeaveRequestsQuery);
 
-      // Fetch undo attendance regularization requests
-      const undoRegularizationRequestsQuery = `
+    // Fetch undo attendance regularization requests
+    const undoRegularizationRequestsQuery = `
           SELECT * FROM attendance_regularization
           WHERE status = 'Undo'
           
       `;
-      const undoRegularizationRequestsResult = await pool.query(undoRegularizationRequestsQuery);
+    const undoRegularizationRequestsResult = await pool.query(
+      undoRegularizationRequestsQuery
+    );
 
-      res.status(200).json({
-          undoLeaveRequests: undoLeaveRequestsResult.rows,
-          undoRegularizationRequests: undoRegularizationRequestsResult.rows,
-      });
+    res.status(200).json({
+      undoLeaveRequests: undoLeaveRequestsResult.rows,
+      undoRegularizationRequests: undoRegularizationRequestsResult.rows,
+    });
   } catch (error) {
-      console.error('Error fetching undo requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching undo requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -1197,34 +1220,38 @@ export const createHelpdeskTicket = async (req: Request, res: Response) => {
   const { category, subcategory, priority, description } = req.body;
 
   try {
-      // Validate the inputs
-      if (!category || !subcategory || !priority || !description) {
-          return res.status(400).json({ message: 'All fields are required.' });
-      }
+    // Validate the inputs
+    if (!category || !subcategory || !priority || !description) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
 
-      // Insert the ticket into the database
-      const result = await pool.query(
-          `INSERT INTO tickets (category, subcategory, priority, description) 
+    // Insert the ticket into the database
+    const result = await pool.query(
+      `INSERT INTO tickets (category, subcategory, priority, description) 
            VALUES ($1, $2, $3, $4) RETURNING *`,
-          [category, subcategory, priority, description]
-      );
+      [category, subcategory, priority, description]
+    );
 
-      res.status(201).json({ message: 'Ticket created successfully', ticket: result.rows[0] });
+    res
+      .status(201)
+      .json({ message: "Ticket created successfully", ticket: result.rows[0] });
   } catch (error) {
-      console.error('Error creating ticket:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error("Error creating ticket:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // API to fetch all tickets
 export const getAllTickets = async (req: Request, res: Response) => {
   try {
-      const result = await pool.query(`SELECT * FROM tickets ORDER BY created_at DESC`);
+    const result = await pool.query(
+      `SELECT * FROM tickets ORDER BY created_at DESC`
+    );
 
-      res.status(200).json(result.rows);
+    res.status(200).json(result.rows);
   } catch (error) {
-      console.error('Error fetching tickets:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching tickets:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -1233,15 +1260,15 @@ export const getTicketsByStatus = async (req: Request, res: Response) => {
   const { status } = req.params;
 
   try {
-      const result = await pool.query(
-          `SELECT * FROM tickets WHERE status = $1 ORDER BY created_at DESC`,
-          [status]
-      );
+    const result = await pool.query(
+      `SELECT * FROM tickets WHERE status = $1 ORDER BY created_at DESC`,
+      [status]
+    );
 
-      res.status(200).json(result.rows);
+    res.status(200).json(result.rows);
   } catch (error) {
-      console.error('Error fetching tickets by status:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching tickets by status:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 //Resignation request
@@ -1249,78 +1276,110 @@ export const createResignationRequest = async (req: Request, res: Response) => {
   const { user_id, request_date, proposed_lwd, reason, comments } = req.body;
 
   try {
-      // Calculate Last Working Date (LWD) based on notice period
-      const noticePeriod = 90;  // Default notice period
-      const calculatedLWD = new Date(new Date(request_date).getTime() + (noticePeriod * 24 * 60 * 60 * 1000));
+    // Calculate Last Working Date (LWD) based on notice period
+    const noticePeriod = 90; // Default notice period
+    const calculatedLWD = new Date(
+      new Date(request_date).getTime() + noticePeriod * 24 * 60 * 60 * 1000
+    );
 
-      const result = await pool.query(
-          `INSERT INTO resignation_requests (user_id, request_date, notice_period, lwd, proposed_lwd, reason, comments)
+    const result = await pool.query(
+      `INSERT INTO resignation_requests (user_id, request_date, notice_period, lwd, proposed_lwd, reason, comments)
           VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *`,
-          [user_id, request_date, noticePeriod, calculatedLWD, proposed_lwd, reason, comments]
-      );
+      [
+        user_id,
+        request_date,
+        noticePeriod,
+        calculatedLWD,
+        proposed_lwd,
+        reason,
+        comments,
+      ]
+    );
 
-      res.status(201).json({ message: "Resignation request submitted successfully", data: result.rows[0] });
+    res
+      .status(201)
+      .json({
+        message: "Resignation request submitted successfully",
+        data: result.rows[0],
+      });
   } catch (error) {
-      console.error('Error creating resignation request:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error creating resignation request:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 export const getResignationRequests = async (req: Request, res: Response) => {
   try {
-      const result = await pool.query(
-          `SELECT * FROM resignation_requests ORDER BY created_at DESC`
-      );
+    const result = await pool.query(
+      `SELECT * FROM resignation_requests ORDER BY created_at DESC`
+    );
 
-      if (result.rowCount === 0) {
-          return res.status(404).json({ message: "No resignation requests found" });
-      }
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No resignation requests found" });
+    }
 
-      res.status(200).json(result.rows);
+    res.status(200).json(result.rows);
   } catch (error) {
-      console.error('Error fetching resignation requests:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching resignation requests:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 export const createOnDutyRequest = async (req: Request, res: Response) => {
   const {
-      userId, reason,  startDate,  endDate,   startHours,startMinutes,endHours,endMinutes,
-      comments
+    userId,
+    reason,
+    startDate,
+    endDate,
+    startHours,
+    startMinutes,
+    endHours,
+    endMinutes,
+    comments,
   } = req.body;
 
   try {
-      const result = await pool.query(
-          `INSERT INTO on_duty_requests 
+    const result = await pool.query(
+      `INSERT INTO on_duty_requests 
               (user_id, reason, start_date, end_date, start_hours, start_minutes, end_hours, end_minutes, comments) 
           VALUES 
               ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING *`,
-          [userId, reason, startDate, endDate, startHours, startMinutes, endHours, endMinutes, comments]
-      );
+      [
+        userId,
+        reason,
+        startDate,
+        endDate,
+        startHours,
+        startMinutes,
+        endHours,
+        endMinutes,
+        comments,
+      ]
+    );
 
-      res.status(201).json({
-          message: 'On Duty request created successfully',
-          data: result.rows[0]
-      });
+    res.status(201).json({
+      message: "On Duty request created successfully",
+      data: result.rows[0],
+    });
   } catch (error) {
-      console.error('Error creating On Duty request:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error("Error creating On Duty request:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
 export const getAllOnDutyRequests = async (req: Request, res: Response) => {
-    try {
-        const result = await pool.query(
-            `SELECT * FROM on_duty_requests ORDER BY created_at DESC`
-        );
+  try {
+    const result = await pool.query(
+      `SELECT * FROM on_duty_requests ORDER BY created_at DESC`
+    );
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: "No On Duty requests found" });
-        }
-
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error('Error fetching On Duty requests:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "No On Duty requests found" });
     }
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching On Duty requests:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
