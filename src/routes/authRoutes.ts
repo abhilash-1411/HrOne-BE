@@ -47,6 +47,8 @@ import {
   getResignationRequests,
   createOnDutyRequest,
   getAllOnDutyRequests,
+  createNotification,
+  getAllNotifications,
 } from "../controllers/authController";
 
 const router = Router();
@@ -131,5 +133,9 @@ router.get("/resignation", getResignationRequests);
 //on-duty req
 router.post("/on-duty", createOnDutyRequest);
 router.get("/on-duty", getAllOnDutyRequests);
+
+// notifications
+router.post("/create-notification", createNotification);
+router.get("/notifications", getAllNotifications);
 
 export default router;

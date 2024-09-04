@@ -263,21 +263,58 @@ export const checkLeaveBalance = async (req: Request, res: Response) => {
   }
 };
 // Add Post API
+// export const addPost = async (req: Request, res: Response) => {
+//   const { title, comments, photo_url, user_id } = req.body;
+
+//   try {
+//     // Ensure all required fields are provided
+//     if (!title || !comments || !photo_url || !user_id) {
+//       return res.status(400).json({
+//         message: "Title, comments, photo URL, and user ID are required",
+//       });
+//     }
+
+//     // Insert the new post into the feed table
+//     const result = await pool.query(
+//       "INSERT INTO feed (title, comments, photo_url, user_id, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *",
+//       [title, comments, photo_url, user_id]
+//     );
+
+//     res
+//       .status(201)
+//       .json({ message: "Post added successfully", post: result.rows[0] });
+//   } catch (error) {
+//     console.error("Error adding post:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
 export const addPost = async (req: Request, res: Response) => {
-  const { title, comments, photo_url, user_id } = req.body;
+  const {
+    title,
+    comments,
+    photo_url,
+    user_id,
+    username,
+    brand,
+    position,
+    timeAgo,
+    description,
+    imageUrl,
+    cheers,
+  } = req.body;
 
   try {
     // Ensure all required fields are provided
-    if (!title || !comments || !photo_url || !user_id) {
+    if (!title || !comments || !photo_url || !user_id || !username || !brand || !position || !description || !imageUrl) {
       return res.status(400).json({
-        message: "Title, comments, photo URL, and user ID are required",
+        message: "All required fields must be provided",
       });
     }
 
     // Insert the new post into the feed table
     const result = await pool.query(
-      "INSERT INTO feed (title, comments, photo_url, user_id, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *",
-      [title, comments, photo_url, user_id]
+      "INSERT INTO feed (title, comments, photo_url, user_id, username, brand, position, time_ago, description, image_url, cheers, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()) RETURNING *",
+      [title, comments, photo_url, user_id, username, brand, position, timeAgo, description, imageUrl, cheers]
     );
 
     res
@@ -288,6 +325,7 @@ export const addPost = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 // Get All Feeds API
 export const getAllFeeds = async (req: Request, res: Response) => {
   try {
@@ -1383,3 +1421,42 @@ export const getAllOnDutyRequests = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+let notifications: any[] = [];
+
+// Function to create a new notification
+export const createNotification = async (req: Request, res: Response) => {
+  try {
+    const { title, message, type } = req.body;
+
+    const newNotification = {
+      id: notifications.length + 1,
+      title,
+      message,
+      type,
+      createdAt: new Date(),
+    };
+
+    notifications.push(newNotification);
+
+    res.status(201).json({ message: "Notification created", notification: newNotification });
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Function to get all notifications
+export const getAllNotifications = async (req: Request, res: Response) => {
+  try {
+    if (notifications.length === 0) {
+      return res.status(404).json({ message: "No notifications found" });
+    }
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
